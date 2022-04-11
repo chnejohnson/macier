@@ -1,5 +1,5 @@
 {
-  "name": "vuecli",
+  "name": "macier",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "core-js": "^3.8.3",
+    "maci-crypto": "^1.0.4",
+    "maci-domainobjs": "^1.0.4",
     "vue": "^3.2.13"
   },
   "devDependencies": {
@@ -23,6 +25,7 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-vue": "^8.0.3",
+    "node-polyfill-webpack-plugin": "^1.1.4",
     "prettier": "^2.4.1",
     "typescript": "~4.5.5"
   }

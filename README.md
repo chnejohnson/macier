@@ -1,4 +1,4 @@
-# vuecli
+# macier
 
 ## Project setup
 ```
