@@ -5,7 +5,9 @@
   </div>
 
   <div class="w-flex justify-center">
-    <w-button @click="searchContract" bg-color="grey" color="blue-grey-light5" xl round>Search</w-button>
+    <w-button @click="searchContract" bg-color="grey-dark2" class="pa5" color="blue-grey-light5" lg round>
+      Search
+    </w-button>
   </div>
   <div class="text-center mt6">
     <p>MACI: {{ maciState.maci }}</p>

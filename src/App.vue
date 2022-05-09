@@ -1,10 +1,10 @@
 <template>
   <w-app>
-    <header><Header /></header>
+    <header><LayoutHeader /></header>
     <main class="grow">
       <router-view></router-view>
     </main>
-    <footer><Footer /></footer>
+    <footer><LayoutFooter /></footer>
   </w-app>
 
   <!--  VueDapp  -->
@@ -13,12 +13,34 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import Header from '@/components/LayoutHeader.vue'
-import Footer from '@/components/LayoutFooter.vue'
+import LayoutHeader from '@/components/LayoutHeader.vue'
+import LayoutFooter from '@/components/LayoutFooter.vue'
+import useNetwork from './composables/network'
+import { useWallet } from 'vue-dapp'
 
 export default defineComponent({
   name: 'App',
-  components: { Header, Footer },
+  components: { LayoutHeader, LayoutFooter },
+  setup() {
+    const { isSupportedNetwork, unmatchedNetwork, supportedChainName } = useNetwork()
+    const { onAccountsChanged, onChainChanged } = useWallet()
+
+    onAccountsChanged(() => {
+      console.log({
+        text: 'Account Changed',
+        type: 'warn',
+      })
+    })
+
+    onChainChanged(() => {
+      console.log({
+        text: 'Chain Changed',
+        type: 'warn',
+      })
+    })
+
+    return { isSupportedNetwork, unmatchedNetwork, supportedChainName }
+  },
 })
 </script>
 
