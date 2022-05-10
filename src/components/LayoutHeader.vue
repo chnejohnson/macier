@@ -1,6 +1,9 @@
 <template>
   <w-toolbar bg-color="transparent">
-    <div class="title1">MACIER</div>
+    <router-link to="/">
+      <p class="title1" style="cursor: pointer">MACIER</p>
+    </router-link>
+
     <KeyForVoting />
     <div class="spacer"></div>
 

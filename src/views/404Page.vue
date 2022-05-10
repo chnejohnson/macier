@@ -1,8 +1,6 @@
 <template>
-  <div class="text-center">
-    <p>404</p>
-    <w-button @click="routerGo(-1)" class="btn btn-primary my-5">Back</w-button>
-    <w-button @click="routerPush('/')" class="btn btn-secondary my-5">Home</w-button>
+  <div class="w-flex justify-center">
+    <p class="title1 mt12">404 not found</p>
   </div>
 </template>
 

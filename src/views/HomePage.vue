@@ -1,24 +1,41 @@
 <template>
-  <w-input v-model="contractAddress" class="ma6" bg-color="grey" label="MACI or Poll address" round outline></w-input>
-  <div class="ma6">
-    <w-radios v-model="selection" :items="radioItems"> </w-radios>
-  </div>
+  <div>
+    <w-input
+      v-model="contractAddress"
+      label-color="grey-light3"
+      bg-color="grey-dark2"
+      color="grey-light3"
+      label="MACI or Poll address"
+      round
+      outline
+    ></w-input>
 
-  <div class="w-flex justify-center">
-    <w-button @click="searchContract" bg-color="grey-dark2" class="pa5" color="blue-grey-light5" lg round>
-      Search
-    </w-button>
-  </div>
-  <div class="text-center mt6">
-    <p>MACI: {{ maciState.maci }}</p>
-    <p>Signups: {{ maciState.numSignUps }}</p>
-  </div>
+    <div class="mt3">
+      <w-radios color="grey-light3" label-color="grey-light3" v-model="selection" :items="radioItems"> </w-radios>
+    </div>
 
-  <div v-if="pollState.poll" class="text-center mt6">
-    <p>Poll: {{ pollState.poll }}</p>
-    <p>Messages: {{ pollState.numMessages }}</p>
-    <p>isAfterDeadline: {{ pollState.isAfterDeadline }}</p>
-    <p>coordinatorPubKey: {{ pollState.coordinatorPubKey }}</p>
+    <div class="w-flex justify-center">
+      <w-button @click="searchContract" bg-color="grey-dark2" class="pa5" lg round> Search </w-button>
+    </div>
+
+    <div v-if="maciState.maci" class="text-center mt6">
+      <p class="title2 mb2">MACI</p>
+      <p>{{ shortenAddress(maciState.maci) }}</p>
+      <p>Signups: {{ maciState.numSignUps }}</p>
+      <w-button route="/signUp" bg-color="primary-light1" class="mt3 pa4"> Sign Up </w-button>
+    </div>
+
+    <div v-if="pollState.poll" class="text-center mt6">
+      <p class="title2 mb2">Poll</p>
+      <p>{{ shortenAddress(pollState.poll) }}</p>
+      <p>Messages: {{ pollState.numMessages }}</p>
+      <w-button v-if="!pollState.isAfterDeadline" route="/vote" bg-color="primary-light1" class="mt3 pa4">
+        Vote
+      </w-button>
+      <w-button v-if="pollState.isAfterDeadline" route="/verify" bg-color="primary-light1" class="mt3 pa4">
+        Verify
+      </w-button>
+    </div>
   </div>
 </template>
 
@@ -27,7 +44,7 @@ import { defineComponent, ref, reactive, watch } from 'vue'
 import { ethers } from 'ethers'
 import { MACI__factory, AccQueueQuinaryMaci__factory, Poll__factory } from 'qv-contracts/build/typechain'
 import { POSEIDON_ADDRESS } from '@/constants/poseidon'
-import { ChainId } from 'vue-dapp'
+import { ChainId, shortenAddress } from 'vue-dapp'
 import { PubKey } from 'maci-domainobjs'
 
 export default defineComponent({
@@ -138,6 +155,10 @@ export default defineComponent({
       }
     }
 
+    const shortenKey = (key: string) => {
+      return key.slice(0, 12) + '...' + key.slice(-3)
+    }
+
     return {
       selection,
       radioItems,
@@ -145,6 +166,8 @@ export default defineComponent({
       maciState,
       pollState,
       searchContract,
+      shortenKey,
+      shortenAddress,
     }
   },
 })

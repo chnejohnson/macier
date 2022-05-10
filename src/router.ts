@@ -1,14 +1,7 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import HomePage from './views/HomePage.vue'
-import SignUpPage from './views/SignUpPage.vue'
 import VotingPage from './views/VotingPage.vue'
-
-const urlParams = new URLSearchParams(window.location.search)
-
-function updateChainId(chainId: number) {
-  urlParams.set('chainId', chainId.toString())
-  window.history.replaceState({}, '', `${location.pathname}?${urlParams}`)
-}
+import VerifyPage from './views/VerifyPage.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -17,18 +10,18 @@ const routes: Array<RouteRecordRaw> = [
     component: HomePage,
   },
   {
-    path: '/signUp',
-    name: 'SignUpPage',
-    component: SignUpPage,
-  },
-  {
     path: '/vote',
     name: 'VotingPage',
     component: VotingPage,
   },
   {
+    path: '/verify',
+    name: 'VerifyPage',
+    component: VerifyPage,
+  },
+  {
     path: '/:pathMatch(.*)*',
-    name: '404',
+    name: '404Page',
     component: () => import('./views/404Page.vue'),
   },
 ]

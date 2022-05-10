@@ -1,7 +1,7 @@
 <template>
   <w-app>
     <header><LayoutHeader /></header>
-    <main class="grow">
+    <main class="grow ma12">
       <router-view></router-view>
     </main>
     <footer><LayoutFooter /></footer>
@@ -50,6 +50,15 @@ export default defineComponent({
   background-color: #42413b;
   color: rgb(216, 213, 213);
 }
+
+a {
+  color: rgb(223, 219, 219);
+}
+
+a:hover {
+  color: rgb(198, 194, 194);
+}
+
 header,
 footer,
 main {

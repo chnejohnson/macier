@@ -13,9 +13,7 @@ app.use(VueDapp)
 app.use(router)
 
 new WaveUI(app, {
-  colors: {
-    primary: '#ffffff',
-  },
+  colors: {},
 })
 
 app.mount('#app')

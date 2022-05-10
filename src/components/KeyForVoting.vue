@@ -38,7 +38,7 @@
         </div>
 
         <div class="text-center">
-          <w-button @click="download" class="my4 pa4" bg-color="blue-dark4" lg>Download MACI Private Key</w-button>
+          <w-button @click="download" class="my4 pa4" bg-color="primary-light1" lg>Download MACI Private Key</w-button>
         </div>
       </div>
     </template>
