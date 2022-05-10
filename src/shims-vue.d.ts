@@ -8,3 +8,8 @@ declare module '*.vue' {
 declare module 'wave-ui' {
   export default WaveUI
 }
+
+declare module 'file-saver' {
+  import saveAs from '@types/file-saver'
+  export default saveAs
+}

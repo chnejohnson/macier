@@ -1,7 +1,7 @@
 <template>
   <w-toolbar bg-color="transparent">
     <div class="title1">MACIER</div>
-
+    <KeyForVoting />
     <div class="spacer"></div>
 
     <!-- todo: network depends on Metamask -->
@@ -25,10 +25,14 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
+import KeyForVoting from '@/components/KeyForVoting.vue'
 import { useBoard, useEthers, displayChainName, shortenAddress } from 'vue-dapp'
 import useNetwork from '@/composables/network'
 
 export default defineComponent({
+  components: {
+    KeyForVoting,
+  },
   setup() {
     const { open: openBoard } = useBoard()
     const { address, balance, chainId, isActivated } = useEthers()
