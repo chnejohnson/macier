@@ -1,7 +1,7 @@
 <template>
   <w-app>
     <header><LayoutHeader /></header>
-    <main class="grow ma12">
+    <main class="grow my8 mx10">
       <router-view></router-view>
     </main>
     <footer><LayoutFooter /></footer>

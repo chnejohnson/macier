@@ -15,6 +15,11 @@ const routes: Array<RouteRecordRaw> = [
     component: VotingPage,
   },
   {
+    path: '/vote/:pollAddress',
+    name: 'VotingPageWithAddress',
+    component: VotingPage,
+  },
+  {
     path: '/verify',
     name: 'VerifyPage',
     component: VerifyPage,

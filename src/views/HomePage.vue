@@ -1,41 +1,39 @@
 <template>
-  <div>
-    <w-input
-      v-model="contractAddress"
-      label-color="grey-light3"
-      bg-color="grey-dark2"
-      color="grey-light3"
-      label="MACI or Poll address"
-      round
-      outline
-    ></w-input>
+  <w-input
+    v-model="contractAddress"
+    label-color="grey-light3"
+    bg-color="grey-dark2"
+    color="grey-light3"
+    label="MACI or Poll address"
+    round
+    outline
+  ></w-input>
 
-    <div class="mt3">
-      <w-radios color="grey-light3" label-color="grey-light3" v-model="selection" :items="radioItems"> </w-radios>
-    </div>
+  <div class="mt3">
+    <w-radios color="grey-light3" label-color="grey-light3" v-model="selection" :items="radioItems"> </w-radios>
+  </div>
 
-    <div class="w-flex justify-center">
-      <w-button @click="searchContract" bg-color="grey-dark2" class="pa5" lg round> Search </w-button>
-    </div>
+  <div class="w-flex justify-center">
+    <w-button @click="searchContract" bg-color="grey-dark2" class="pa5" lg round> Search </w-button>
+  </div>
 
-    <div v-if="maciState.maci" class="text-center mt6">
-      <p class="title2 mb2">MACI</p>
-      <p>{{ shortenAddress(maciState.maci) }}</p>
-      <p>Signups: {{ maciState.numSignUps }}</p>
-      <w-button route="/signUp" bg-color="primary-light1" class="mt3 pa4"> Sign Up </w-button>
-    </div>
+  <div v-if="maciState.maci" class="text-center mt6">
+    <p class="title2 mb2">MACI</p>
+    <p>{{ shortenAddress(maciState.maci) }}</p>
+    <p>Signups: {{ maciState.numSignUps }}</p>
+    <w-button route="/signUp" bg-color="primary-light1" class="mt3 pa4"> Sign Up </w-button>
+  </div>
 
-    <div v-if="pollState.poll" class="text-center mt6">
-      <p class="title2 mb2">Poll</p>
-      <p>{{ shortenAddress(pollState.poll) }}</p>
-      <p>Messages: {{ pollState.numMessages }}</p>
-      <w-button v-if="!pollState.isAfterDeadline" route="/vote" bg-color="primary-light1" class="mt3 pa4">
-        Vote
-      </w-button>
-      <w-button v-if="pollState.isAfterDeadline" route="/verify" bg-color="primary-light1" class="mt3 pa4">
-        Verify
-      </w-button>
-    </div>
+  <div v-if="pollState.poll" class="text-center mt6">
+    <p class="title2 mb2">Poll</p>
+    <p>{{ shortenAddress(pollState.poll) }}</p>
+    <p>Messages: {{ pollState.numMessages }}</p>
+    <w-button v-if="!pollState.isAfterDeadline" route="/vote" bg-color="primary-light1" class="mt3 pa4">
+      Vote
+    </w-button>
+    <w-button v-if="pollState.isAfterDeadline" route="/verify" bg-color="primary-light1" class="mt3 pa4">
+      Verify
+    </w-button>
   </div>
 </template>
 
