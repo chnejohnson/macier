@@ -37,8 +37,14 @@
     </div>
   </div>
 
-  <w-table :headers="votingTable.headers" :items="votingTable.items">
-    <template #item="{ item }">
+  <w-table :headers="votingTable.headers" :items="votingTable.items" no-headers>
+    <template #item="{ item, index }">
+      <th v-for="(header, i) in votingTable.headers" :key="i">
+        <div v-if="index === 1" class="text-bold text-left title4 pa2">
+          {{ header.label }}
+        </div>
+      </th>
+
       <tr>
         <td class="pa4" v-for="(header, i) in votingTable.headers" :key="i">
           <div v-if="i === 0">
@@ -55,19 +61,23 @@
             <w-button @click="moreBtn(item.optionIndex)" bg-color="grey-dark3">+</w-button>
           </div>
 
-          <div v-if="i === 2" class="w-flex">
-            <div>
-              {{ item[header.key] }}
+          <div v-if="i === 2" class="w-flex align-center justify-space-between">
+            <div class="w-flex align-center grow">
+              <div style="width: 50px">
+                {{ item[header.key] }}
+              </div>
+              <div class="grow">
+                <w-slider
+                  @update:model-value="updateSpentVC(item.optionIndex)"
+                  v-model="item.ratio"
+                  color="primary-light3"
+                >
+                </w-slider>
+              </div>
             </div>
-            <div class="spacer"></div>
 
-            <div class="">
-              {{
-                (item[header.key] / voiceCreditBalance) * 100
-                  ? ((item[header.key] / voiceCreditBalance) * 100).toFixed(2)
-                  : 0
-              }}
-              %
+            <div class="ml6" style="width: 50px">
+              <p>{{ Math.floor(item.ratio) }} %</p>
             </div>
           </div>
         </td>
@@ -89,7 +99,7 @@
     ></w-input>
   </div>
   <div class="text-center mt6">
-    <w-button lg round class="pa6" bg-color="grey" @click="publish">Publish</w-button>
+    <w-button lg round class="pa5" bg-color="primary-light1" @click="publish">Publish</w-button>
   </div>
 
   <w-dialog
@@ -120,7 +130,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, reactive, watch } from 'vue'
+import { computed, defineComponent, ref, reactive, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ethers } from 'ethers'
 import {
@@ -223,26 +233,39 @@ export default defineComponent({
     }
 
     const userPrivKey = ref('')
-    const voiceCreditBalance = ref(0)
+    const voiceCreditBalance = ref(100)
     const totalSpentVC = computed(() => {
       return votingTable.value.items.reduce((prev, cur) => {
         return prev + cur.voiceCredits
       }, 0)
     })
+
+    watch(voiceCreditBalance, () => {
+      updateAllRatio()
+    })
+
+    const updateAllRatio = () => {
+      const items = votingTable.value.items
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        item.ratio = Math.floor((item.voiceCredits / voiceCreditBalance.value) * 100)
+      }
+    }
+
     const votingTable = ref({
       headers: [
         { label: 'Option Index', key: 'optionIndex' },
         { label: 'Votes', key: 'votes' },
-        { label: 'Voice Credits', key: 'voiceCredits' },
+        { label: 'Spent Voice Credits', key: 'voiceCredits' },
       ],
       items: [
-        { optionIndex: 0, votes: 0, voiceCredits: 0 },
-        { optionIndex: 1, votes: 0, voiceCredits: 0 },
-        { optionIndex: 2, votes: 0, voiceCredits: 0 },
-        { optionIndex: 3, votes: 0, voiceCredits: 0 },
-        { optionIndex: 4, votes: 0, voiceCredits: 0 },
-        { optionIndex: 5, votes: 0, voiceCredits: 0 },
-        { optionIndex: 6, votes: 0, voiceCredits: 0 },
+        { optionIndex: 0, votes: 0, voiceCredits: 0, ratio: 0 },
+        { optionIndex: 1, votes: 0, voiceCredits: 0, ratio: 0 },
+        { optionIndex: 2, votes: 0, voiceCredits: 0, ratio: 0 },
+        { optionIndex: 3, votes: 0, voiceCredits: 0, ratio: 0 },
+        { optionIndex: 4, votes: 0, voiceCredits: 0, ratio: 0 },
+        { optionIndex: 5, votes: 0, voiceCredits: 0, ratio: 0 },
+        { optionIndex: 6, votes: 0, voiceCredits: 0, ratio: 0 },
       ],
     })
 
@@ -257,8 +280,7 @@ export default defineComponent({
       if (newTotalSpentVC > voiceCreditBalance.value) {
         return
       }
-      votingTable.value.items[optionIndex].votes = newVotes
-      votingTable.value.items[optionIndex].voiceCredits = newSpentVC
+      updateVotes(optionIndex, newVotes, newSpentVC)
     }
 
     const fewerBtn = (optionIndex: number) => {
@@ -269,8 +291,39 @@ export default defineComponent({
       const newVotes = curVotes - 1
       const newSpentVC = newVotes ** 2
 
-      votingTable.value.items[optionIndex].votes = newVotes
-      votingTable.value.items[optionIndex].voiceCredits = newSpentVC
+      updateVotes(optionIndex, newVotes, newSpentVC)
+    }
+
+    const updateSpentVC = async (optionIndex: number) => {
+      const oldRatio = Math.floor(votingTable.value.items[optionIndex].ratio)
+      await nextTick()
+      const ratio = Math.floor(votingTable.value.items[optionIndex].ratio)
+      const roughVC = Math.floor((voiceCreditBalance.value * ratio) / 100)
+      const newVotes = Math.floor(Math.sqrt(roughVC))
+      const newSpentVC = newVotes ** 2
+      const newTotalSpentVC = votingTable.value.items.reduce((prev, cur) => {
+        if (cur.optionIndex === optionIndex) return prev + newSpentVC
+        return prev + cur.voiceCredits
+      }, 0)
+      if (newTotalSpentVC > voiceCreditBalance.value) {
+        const maxRoughVC = voiceCreditBalance.value - (newTotalSpentVC - newSpentVC)
+        if (maxRoughVC <= 0) {
+          votingTable.value.items[optionIndex].ratio = oldRatio
+          return
+        }
+        const maxVotes = Math.floor(Math.sqrt(maxRoughVC))
+        const maxSpentVC = maxVotes ** 2
+
+        updateVotes(optionIndex, maxVotes, maxSpentVC)
+        return
+      }
+      updateVotes(optionIndex, newVotes, newSpentVC)
+    }
+
+    const updateVotes = (optionIndex: number, votes: number, spentVC: number) => {
+      votingTable.value.items[optionIndex].votes = votes
+      votingTable.value.items[optionIndex].voiceCredits = spentVC
+      votingTable.value.items[optionIndex].ratio = Math.floor((spentVC / voiceCreditBalance.value) * 100)
     }
 
     const publish = () => {
@@ -290,6 +343,7 @@ export default defineComponent({
       moreBtn,
       fewerBtn,
       loadPoll,
+      updateSpentVC,
     }
   },
 })
