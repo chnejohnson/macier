@@ -38,7 +38,7 @@ const routes: Array<RouteRecordRaw> = [
 
 const router = createRouter({
   // If app is not hosted at the domain root, make sure to pass the `base` input here: https://next.router.vuejs.org/api/#parameters
-  history: createWebHistory(),
+  history: createWebHistory('/macier/'), // https://stackoverflow.com/a/70766347
   routes,
 })
 
