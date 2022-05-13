@@ -139,7 +139,7 @@ import {
   Poll__factory,
   InitialVoiceCreditProxy__factory,
 } from 'qv-contracts/build/typechain'
-import { POSEIDON_ADDRESS } from '@/constants/poseidon'
+import { ADDRESSES } from '@/constants/addresses'
 import { ChainId } from 'vue-dapp'
 import { PubKey } from 'maci-domainobjs'
 
@@ -147,10 +147,10 @@ export default defineComponent({
   components: {},
   setup() {
     const linkedLibraryAddresses = {
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT5,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT3,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT6,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT4,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: ADDRESSES[ChainId.Hardhat].poseidonT5,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: ADDRESSES[ChainId.Hardhat].poseidonT3,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: ADDRESSES[ChainId.Hardhat].poseidonT6,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: ADDRESSES[ChainId.Hardhat].poseidonT4,
     }
 
     const provider = new ethers.providers.JsonRpcProvider()

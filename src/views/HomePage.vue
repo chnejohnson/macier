@@ -21,7 +21,7 @@
     <p class="title2 mb2">MACI</p>
     <p>{{ shortenAddress(maciState.maci) }}</p>
     <p>Signups: {{ maciState.numSignUps }}</p>
-    <w-button route="/signUp" bg-color="primary-light1" class="mt3 pa4"> Sign Up </w-button>
+    <w-button bg-color="primary-light1" class="mt3 pa4"> Sign Up </w-button>
   </div>
 
   <div v-if="pollState.poll" class="text-center mt6">
@@ -39,15 +39,17 @@
 
 <script lang="ts">
 import { defineComponent, ref, reactive, watch } from 'vue'
-import { ethers } from 'ethers'
 import { MACI__factory, AccQueueQuinaryMaci__factory, Poll__factory } from 'qv-contracts/build/typechain'
-import { POSEIDON_ADDRESS } from '@/constants/poseidon'
-import { ChainId, shortenAddress } from 'vue-dapp'
+import { ADDRESSES } from '@/constants/addresses'
+import { ChainId, shortenAddress, useEthers } from 'vue-dapp'
 import { PubKey } from 'maci-domainobjs'
 
 export default defineComponent({
   setup() {
-    const contractAddress = ref('0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6')
+    const { signer } = useEthers()
+    // TODO: still need localhost signer
+
+    const contractAddress = ref('')
     const maciState = reactive({
       maci: '',
       numSignUps: '',
@@ -73,37 +75,28 @@ export default defineComponent({
       { label: 'Poll', value: 1 },
     ])
 
-    watch(selection, () => {
-      if (selection.value === 0) {
-        contractAddress.value = '0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6'
-      } else if (selection.value === 1) {
-        contractAddress.value = '0x61c36a8d610163660E21a8b7359e1Cac0C9133e1'
-      }
-    })
-
     const linkedLibraryAddresses = {
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT5,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT3,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT6,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT4,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: ADDRESSES[ChainId.Hardhat].poseidonT5,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: ADDRESSES[ChainId.Hardhat].poseidonT3,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: ADDRESSES[ChainId.Hardhat].poseidonT6,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: ADDRESSES[ChainId.Hardhat].poseidonT4,
     }
 
-    const provider = new ethers.providers.JsonRpcProvider()
-    const signer = provider.getSigner()
-
     const searchContract = async () => {
-      console.log(contractAddress.value)
-      if (!contractAddress.value) throw new Error('No provided address')
+      console.log('contract:', contractAddress.value)
+      if (!contractAddress.value) return
 
       if (selection.value === 0) {
         let maci
         try {
-          maci = new MACI__factory({ ...linkedLibraryAddresses }, signer).attach(contractAddress.value)
+          maci = new MACI__factory({ ...linkedLibraryAddresses }, signer.value!).attach(contractAddress.value)
         } catch (e) {
           throw new Error('contract not found')
         }
         const stateAqAddress = await maci.stateAq()
-        const stateAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer).attach(stateAqAddress)
+        const stateAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer.value!).attach(
+          stateAqAddress,
+        )
 
         maciState.maci = contractAddress.value
         maciState.numSignUps = (await maci.numSignUps()).toString()
@@ -117,14 +110,16 @@ export default defineComponent({
       } else if (selection.value === 1) {
         let poll
         try {
-          poll = new Poll__factory({ ...linkedLibraryAddresses }, signer).attach(contractAddress.value)
+          poll = new Poll__factory({ ...linkedLibraryAddresses }, signer.value!).attach(contractAddress.value)
         } catch (e) {
           throw new Error('poll contract not found')
         }
         const extContracts = await poll.extContracts()
-        const maci = new MACI__factory({ ...linkedLibraryAddresses }, signer).attach(extContracts.maci)
+        const maci = new MACI__factory({ ...linkedLibraryAddresses }, signer.value!).attach(extContracts.maci)
         const stateAqAddress = await maci.stateAq()
-        const stateAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer).attach(stateAqAddress)
+        const stateAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer.value!).attach(
+          stateAqAddress,
+        )
 
         maciState.maci = extContracts.maci
         maciState.numSignUps = (await maci.numSignUps()).toString()
@@ -134,7 +129,7 @@ export default defineComponent({
         maciState.subTreesMerged = await stateAq.subTreesMerged()
         maciState.treeMerged = await stateAq.treeMerged()
 
-        const messageAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer).attach(
+        const messageAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer.value!).attach(
           extContracts.messageAq,
         )
 
