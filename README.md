@@ -22,3 +22,7 @@ yarn lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+## Development
+- wave ui
+- [font awesome v4](https://fontawesome.com/v4/icons/)

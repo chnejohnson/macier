@@ -15,40 +15,18 @@
 import { defineComponent } from 'vue'
 import LayoutHeader from '@/components/LayoutHeader.vue'
 import LayoutFooter from '@/components/LayoutFooter.vue'
-import useNetwork from './composables/network'
-import { useWallet } from 'vue-dapp'
 
 export default defineComponent({
   name: 'App',
   components: { LayoutHeader, LayoutFooter },
-  setup() {
-    const { isSupportedNetwork, unmatchedNetwork, supportedChainName } = useNetwork()
-    const { onAccountsChanged, onChainChanged } = useWallet()
-
-    onAccountsChanged(() => {
-      console.log({
-        text: 'Account Changed',
-        type: 'warn',
-      })
-    })
-
-    onChainChanged(() => {
-      console.log({
-        text: 'Chain Changed',
-        type: 'warn',
-      })
-    })
-
-    return { isSupportedNetwork, unmatchedNetwork, supportedChainName }
-  },
 })
 </script>
 
 <style>
 .w-app {
   padding: 4px;
-  background-color: #42413b;
-  color: rgb(216, 213, 213);
+  background-color: #383838;
+  color: #adadad;
 }
 
 a {
