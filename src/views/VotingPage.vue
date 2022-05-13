@@ -53,12 +53,12 @@
 
           <div v-if="i === 1" class="w-flex">
             <!-- fewer button -->
-            <w-button @click="fewerBtn(item.optionIndex)" bg-color="grey-dark3">-</w-button>
+            <w-button @click="fewerVotes(item.optionIndex)" bg-color="grey-dark3">-</w-button>
             <div class="ml3 mr3">
               {{ item[header.key] }}
             </div>
             <!-- more button -->
-            <w-button @click="moreBtn(item.optionIndex)" bg-color="grey-dark3">+</w-button>
+            <w-button @click="moreVotes(item.optionIndex)" bg-color="grey-dark3">+</w-button>
           </div>
 
           <div v-if="i === 2" class="w-flex align-center justify-space-between">
@@ -127,34 +127,52 @@
       <w-button lg round class="pa4" bg-color="grey" @click="loadPoll">Load</w-button>
     </div>
   </w-dialog>
+
+  <w-overlay v-model="isLoading" :opacity="0.3">
+    <w-spinner color="grey-light4" v-model="isLoading" />
+  </w-overlay>
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, reactive, watch, nextTick } from 'vue'
+import { computed, defineComponent, ref, reactive, watch, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ethers } from 'ethers'
+import { ethers, Signer } from 'ethers'
 import {
   MACI__factory,
   AccQueueQuinaryMaci__factory,
   Poll__factory,
   InitialVoiceCreditProxy__factory,
 } from 'qv-contracts/build/typechain'
-import { POSEIDON_ADDRESS } from '@/constants/poseidon'
-import { ChainId } from 'vue-dapp'
+import { ADDRESSES } from '@/constants/addresses'
 import { PubKey } from 'maci-domainobjs'
+import { useEthers } from 'vue-dapp'
+import useWeb3 from '@/composables/web3'
 
 export default defineComponent({
   components: {},
   setup() {
-    const linkedLibraryAddresses = {
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT5,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT3,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT6,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT4,
+    const isLoading = ref(false)
+    const { address, signer: signerRef } = useEthers()
+    const { appChainId } = useWeb3()
+
+    let signer: Signer | null
+    if (appChainId.value === 31337) {
+      const provider = new ethers.providers.JsonRpcProvider()
+      signer = provider.getSigner()
+    } else {
+      signer = signerRef.value
     }
 
-    const provider = new ethers.providers.JsonRpcProvider()
-    const signer = provider.getSigner()
+    const linkedLibraryAddresses = {
+      // @ts-ignore
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: ADDRESSES[appChainId.value].poseidonT5,
+      // @ts-ignore
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: ADDRESSES[appChainId.value].poseidonT3,
+      // @ts-ignore
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: ADDRESSES[appChainId.value].poseidonT6,
+      // @ts-ignore
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: ADDRESSES[appChainId.value].poseidonT4,
+    }
 
     const pollState = reactive({
       poll: '',
@@ -174,45 +192,81 @@ export default defineComponent({
     const dialog = ref({
       pollAddress: false,
     })
-    const pollAddress = ref('0x61c36a8d610163660E21a8b7359e1Cac0C9133e1')
-    const getVoiceCreditsAddress = ref('')
+    const pollAddress = ref('')
+    const getVoiceCreditsAddress = ref(address.value)
     const route = useRoute()
     const router = useRouter()
     const pollAddr = route.params.pollAddress as string
-    if (!pollAddr) {
-      dialog.value.pollAddress = true
-    } else {
-      pollAddress.value = pollAddr
-      loadPoll()
-    }
+
+    watch(appChainId, async () => {
+      pollAddress.value = ADDRESSES[appChainId.value].ppt
+      isLoading.value = true
+      try {
+        await loadPoll()
+      } catch (e: any) {
+        throw new Error(e)
+      } finally {
+        isLoading.value = false
+      }
+    })
+
+    onMounted(async () => {
+      if (!pollAddr) {
+        dialog.value.pollAddress = true
+      } else {
+        pollAddress.value = pollAddr
+        isLoading.value = true
+        await loadPoll()
+        isLoading.value = false
+      }
+
+      try {
+        isLoading.value = true
+        await getVoiceCredits()
+      } catch (e: any) {
+        throw new Error(e)
+      } finally {
+        isLoading.value = false
+      }
+    })
 
     watch(getVoiceCreditsAddress, async () => {
+      try {
+        isLoading.value = true
+        await getVoiceCredits()
+      } catch (e: any) {
+        throw new Error(e)
+      } finally {
+        isLoading.value = false
+      }
+    })
+
+    const getVoiceCredits = async () => {
+      // TODO: trim string
       if (!getVoiceCreditsAddress.value) {
         voiceCreditBalance.value = 0
-        return
+        throw new Error('address not found')
       }
       let maci
-      try {
-        maci = new MACI__factory({ ...linkedLibraryAddresses }, signer).attach(pollState.maci)
-      } catch (e) {
-        throw new Error('contract not found')
-      }
-
+      // @ts-ignore
+      maci = new MACI__factory({ ...linkedLibraryAddresses }, signer).attach(pollState.maci)
+      // @ts-ignore
       const initialVCProxy = InitialVoiceCreditProxy__factory.connect(await maci.initialVoiceCreditProxy(), signer)
-
       const vcBalance = (await initialVCProxy.getVoiceCredits(getVoiceCreditsAddress.value, [])).toString()
       voiceCreditBalance.value = Number(vcBalance)
-    })
+    }
 
     async function loadPoll() {
       let poll
       try {
+        // @ts-ignore
         poll = new Poll__factory({ ...linkedLibraryAddresses }, signer).attach(pollAddress.value)
       } catch (e) {
         throw new Error('poll contract not found')
       }
       const extContracts = await poll.extContracts()
 
+      // @ts-ignore
       const messageAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer).attach(
         extContracts.messageAq,
       )
@@ -233,7 +287,7 @@ export default defineComponent({
     }
 
     const userPrivKey = ref('')
-    const voiceCreditBalance = ref(100)
+    const voiceCreditBalance = ref(99)
     const totalSpentVC = computed(() => {
       return votingTable.value.items.reduce((prev, cur) => {
         return prev + cur.voiceCredits
@@ -269,7 +323,7 @@ export default defineComponent({
       ],
     })
 
-    const moreBtn = (optionIndex: number) => {
+    const moreVotes = (optionIndex: number) => {
       const curVotes = votingTable.value.items[optionIndex].votes
       const newVotes = curVotes + 1
       const newSpentVC = newVotes ** 2
@@ -283,7 +337,7 @@ export default defineComponent({
       updateVotes(optionIndex, newVotes, newSpentVC)
     }
 
-    const fewerBtn = (optionIndex: number) => {
+    const fewerVotes = (optionIndex: number) => {
       const curVotes = votingTable.value.items[optionIndex].votes
       if (curVotes === 0) {
         return
@@ -331,6 +385,7 @@ export default defineComponent({
     }
 
     return {
+      isLoading,
       dialog,
       pollAddress,
       getVoiceCreditsAddress,
@@ -340,8 +395,8 @@ export default defineComponent({
       totalSpentVC,
       pollState,
       publish,
-      moreBtn,
-      fewerBtn,
+      moreVotes,
+      fewerVotes,
       loadPoll,
       updateSpentVC,
     }

@@ -1,14 +1,14 @@
 import { computed, ref } from 'vue'
 import { useEthers, CHAIN_NAMES, displayChainName } from 'vue-dapp'
 
+type SupportedChainId = 31337 | 4 | 5
+
 const isDev = process.env.NODE_ENV === 'development'
 const infuraApiKey = process.env.VUE_APP_INFURA_API_KEY
 
-type SupportedChainId = keyof typeof CHAIN_NAMES
-
-// chain IDs supported by this app
+// chain IDs supported in this app
 const supportedChainIds = isDev ? [4, 5, 31337] : [4, 5] // rinkeby, goerli
-const appChainId = ref<number | SupportedChainId>(isDev ? 31337 : 4)
+const appChainId = ref<SupportedChainId>(isDev ? 4 : 4)
 
 isDev && console.log('appChainId: ', appChainId.value)
 
@@ -43,8 +43,10 @@ export default function useWeb3() {
   )
 
   function updateAppChainId(chainId: number) {
-    if (isDev) console.log(`appChainId updated: ${displayChainName(chainId)} ${chainId}`)
-    appChainId.value = chainId
+    isDev && console.log(`appChainId updated: ${displayChainName(chainId)} ${chainId}`)
+    if (supportedChainIds.includes(chainId)) {
+      appChainId.value = chainId as SupportedChainId
+    }
   }
 
   return {

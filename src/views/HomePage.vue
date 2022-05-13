@@ -14,40 +14,77 @@
   </div>
 
   <div class="w-flex justify-center">
-    <w-button @click="searchContract" bg-color="grey-dark2" class="pa5" lg round> Search </w-button>
+    <w-button @click="searchBtn" bg-color="grey-dark2" class="pa5" round lg> Search </w-button>
   </div>
 
   <div v-if="maciState.maci" class="text-center mt6">
     <p class="title2 mb2">MACI</p>
     <p>{{ shortenAddress(maciState.maci) }}</p>
     <p>Signups: {{ maciState.numSignUps }}</p>
-    <w-button route="/signUp" bg-color="primary-light1" class="mt3 pa4"> Sign Up </w-button>
+    <w-button bg-color="primary-light1" class="mt3 pa4"> Sign Up </w-button>
   </div>
 
   <div v-if="pollState.poll" class="text-center mt6">
     <p class="title2 mb2">Poll</p>
     <p>{{ shortenAddress(pollState.poll) }}</p>
     <p>Messages: {{ pollState.numMessages }}</p>
-    <w-button v-if="!pollState.isAfterDeadline" route="/vote" bg-color="primary-light1" class="mt3 pa4">
+    <w-button
+      v-if="!pollState.isAfterDeadline"
+      :route="`/vote/${pollState.poll}`"
+      bg-color="primary-light1"
+      class="mt3 pa4"
+    >
       Vote
     </w-button>
-    <w-button v-if="pollState.isAfterDeadline" route="/verify" bg-color="primary-light1" class="mt3 pa4">
+    <w-button
+      v-if="pollState.isAfterDeadline"
+      :route="`/verify/${pollState.poll}`"
+      bg-color="primary-light1"
+      class="mt3 pa4"
+    >
       Verify
     </w-button>
   </div>
+
+  <w-overlay v-model="isLoading" :opacity="0.3">
+    <w-spinner color="grey-light4" v-model="isLoading" />
+  </w-overlay>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, reactive, watch } from 'vue'
-import { ethers } from 'ethers'
 import { MACI__factory, AccQueueQuinaryMaci__factory, Poll__factory } from 'qv-contracts/build/typechain'
-import { POSEIDON_ADDRESS } from '@/constants/poseidon'
-import { ChainId, shortenAddress } from 'vue-dapp'
+import { ADDRESSES } from '@/constants/addresses'
+import { ChainId, shortenAddress, useEthers, useWallet } from 'vue-dapp'
 import { PubKey } from 'maci-domainobjs'
+import useWeb3 from '@/composables/web3'
+import { ethers, Signer } from 'ethers'
 
 export default defineComponent({
   setup() {
-    const contractAddress = ref('0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6')
+    const { signer: signerRef } = useEthers()
+    const { onChainChanged } = useWallet()
+    const { appChainId } = useWeb3()
+
+    let signer: Signer | null
+    if (appChainId.value === 31337) {
+      const provider = new ethers.providers.JsonRpcProvider()
+      signer = provider.getSigner()
+    } else {
+      signer = signerRef.value
+    }
+
+    const defaultPoll = ADDRESSES[appChainId.value].poll
+    const contractAddress = ref(defaultPoll)
+
+    onChainChanged(() => {
+      signer = signerRef.value
+    })
+
+    watch(appChainId, () => {
+      contractAddress.value = ADDRESSES[appChainId.value].poll
+    })
+
     const maciState = reactive({
       maci: '',
       numSignUps: '',
@@ -67,42 +104,38 @@ export default defineComponent({
       subTreesMerged: false,
       treeMerged: false,
     })
-    const selection = ref(0)
+    const selection = ref(1)
     const radioItems = ref([
       { label: 'MACI', value: 0 },
       { label: 'Poll', value: 1 },
     ])
 
-    watch(selection, () => {
-      if (selection.value === 0) {
-        contractAddress.value = '0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6'
-      } else if (selection.value === 1) {
-        contractAddress.value = '0x61c36a8d610163660E21a8b7359e1Cac0C9133e1'
-      }
-    })
-
     const linkedLibraryAddresses = {
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT5,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT3,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT6,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT4,
+      // @ts-ignore
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: ADDRESSES[appChainId.value].poseidonT5,
+      // @ts-ignore
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: ADDRESSES[appChainId.value].poseidonT3,
+      // @ts-ignore
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: ADDRESSES[appChainId.value].poseidonT6,
+      // @ts-ignore
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: ADDRESSES[appChainId.value].poseidonT4,
     }
 
-    const provider = new ethers.providers.JsonRpcProvider()
-    const signer = provider.getSigner()
-
+    const isLoading = ref(false)
     const searchContract = async () => {
-      console.log(contractAddress.value)
-      if (!contractAddress.value) throw new Error('No provided address')
+      isLoading.value = true
+      console.log('contract:', contractAddress.value)
+      if (!contractAddress.value) {
+        throw new Error('address not found')
+      }
 
       if (selection.value === 0) {
-        let maci
-        try {
-          maci = new MACI__factory({ ...linkedLibraryAddresses }, signer).attach(contractAddress.value)
-        } catch (e) {
-          throw new Error('contract not found')
-        }
+        // @ts-ignore
+        const maci = new MACI__factory({ ...linkedLibraryAddresses }, signer).attach(contractAddress.value)
+
         const stateAqAddress = await maci.stateAq()
+
+        // @ts-ignore
         const stateAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer).attach(stateAqAddress)
 
         maciState.maci = contractAddress.value
@@ -115,15 +148,16 @@ export default defineComponent({
 
         console.log('maciState', maciState)
       } else if (selection.value === 1) {
-        let poll
-        try {
-          poll = new Poll__factory({ ...linkedLibraryAddresses }, signer).attach(contractAddress.value)
-        } catch (e) {
-          throw new Error('poll contract not found')
-        }
+        // @ts-ignore
+        const poll = new Poll__factory({ ...linkedLibraryAddresses }, signer).attach(contractAddress.value)
+
         const extContracts = await poll.extContracts()
+
+        // @ts-ignore
         const maci = new MACI__factory({ ...linkedLibraryAddresses }, signer).attach(extContracts.maci)
         const stateAqAddress = await maci.stateAq()
+
+        // @ts-ignore
         const stateAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer).attach(stateAqAddress)
 
         maciState.maci = extContracts.maci
@@ -133,6 +167,7 @@ export default defineComponent({
         maciState.initialVoiceCreditProxy = await maci.initialVoiceCreditProxy()
         maciState.subTreesMerged = await stateAq.subTreesMerged()
         maciState.treeMerged = await stateAq.treeMerged()
+        // @ts-ignore
 
         const messageAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer).attach(
           extContracts.messageAq,
@@ -153,6 +188,17 @@ export default defineComponent({
       }
     }
 
+    const searchBtn = async () => {
+      isLoading.value = true
+      try {
+        await searchContract()
+      } catch (e: any) {
+        throw new Error(e)
+      } finally {
+        isLoading.value = false
+      }
+    }
+
     const shortenKey = (key: string) => {
       return key.slice(0, 12) + '...' + key.slice(-3)
     }
@@ -163,7 +209,8 @@ export default defineComponent({
       contractAddress,
       maciState,
       pollState,
-      searchContract,
+      isLoading,
+      searchBtn,
       shortenKey,
       shortenAddress,
     }

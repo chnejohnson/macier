@@ -103,12 +103,16 @@
       <w-button lg round class="pa4" bg-color="grey" @click="loadPoll">Load</w-button>
     </div>
   </w-dialog>
+
+  <w-overlay v-model="isLoading" :opacity="0.3">
+    <w-spinner color="grey-light4" v-model="isLoading" />
+  </w-overlay>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, watch } from 'vue'
+import { defineComponent, ref, reactive, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ethers } from 'ethers'
+import { ethers, Signer } from 'ethers'
 import {
   AccQueueQuinaryMaci__factory,
   Poll__factory,
@@ -116,8 +120,9 @@ import {
   PollProcessorAndTallyer,
   PollProcessorAndTallyer__factory,
 } from 'qv-contracts/build/typechain'
-import { POSEIDON_ADDRESS } from '@/constants/poseidon'
-import { ChainId } from 'vue-dapp'
+import { ADDRESSES } from '@/constants/addresses'
+import { ChainId, useEthers, useWallet } from 'vue-dapp'
+import useWeb3 from '@/composables/web3'
 import { PubKey } from 'maci-domainobjs'
 import { IncrementalQuinTree, hashLeftRight, hash2, hash3, hash5 } from 'maci-crypto'
 
@@ -143,6 +148,7 @@ interface TallyResult {
 export default defineComponent({
   components: {},
   setup() {
+    const isLoading = ref(false)
     const votingTable = ref({
       headers: [
         { label: 'Option Index', key: 'optionIndex', align: 'center' },
@@ -184,16 +190,50 @@ export default defineComponent({
       tallyState.totalSpentVoiceCredits = res.totalSpentVoiceCredits.spent
     })
     const linkedLibraryAddresses = {
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT5,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT3,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT6,
-      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: POSEIDON_ADDRESS[ChainId.Hardhat].poseidonT4,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT5']: ADDRESSES[ChainId.Hardhat].poseidonT5,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT3']: ADDRESSES[ChainId.Hardhat].poseidonT3,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT6']: ADDRESSES[ChainId.Hardhat].poseidonT6,
+      ['maci-contracts/contracts/crypto/Hasher.sol:PoseidonT4']: ADDRESSES[ChainId.Hardhat].poseidonT4,
     }
 
-    const provider = new ethers.providers.JsonRpcProvider()
-    const signer = provider.getSigner()
+    const { signer: signerRef } = useEthers()
+    const { appChainId } = useWeb3()
 
-    const pptAddress = ref('0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82')
+    let signer: Signer | null
+    if (appChainId.value === 31337) {
+      const provider = new ethers.providers.JsonRpcProvider()
+      signer = provider.getSigner()
+    } else {
+      signer = signerRef.value
+    }
+
+    const { onChainChanged } = useWallet()
+    onChainChanged(async () => {
+      signer = signerRef.value
+      try {
+        isLoading.value = true
+        await loadPoll()
+      } catch (e: any) {
+        throw new Error(e)
+      } finally {
+        isLoading.value = false
+      }
+    })
+
+    const defaultPpt = ADDRESSES[appChainId.value].ppt
+    const pptAddress = ref(defaultPpt)
+    watch(appChainId, async () => {
+      pptAddress.value = ADDRESSES[appChainId.value].ppt
+      try {
+        isLoading.value = true
+        await loadPoll()
+      } catch (e: any) {
+        throw new Error(e)
+      } finally {
+        isLoading.value = false
+      }
+    })
+
     const pollState = reactive({
       poll: '',
       maci: '',
@@ -216,22 +256,29 @@ export default defineComponent({
     const route = useRoute()
     const router = useRouter()
     const pollAddr = route.params.pollAddress as string
-    if (!pollAddr) {
-      dialog.value.pollAddress = true
-    } else {
-      pollAddress.value = pollAddr
-      loadPoll()
-    }
+
+    onMounted(async () => {
+      if (!pollAddr) {
+        dialog.value.pollAddress = true
+      } else {
+        pollAddress.value = pollAddr
+        isLoading.value = true
+        try {
+          await loadPoll()
+        } catch (e: any) {
+          throw new Error(e)
+        } finally {
+          isLoading.value = false
+        }
+      }
+    })
 
     async function loadPoll() {
-      let poll
-      try {
-        poll = new Poll__factory({ ...linkedLibraryAddresses }, signer).attach(pollAddress.value)
-      } catch (e) {
-        throw new Error('poll contract not found')
-      }
-      const extContracts = await poll.extContracts()
+      // @ts-ignore
+      const poll = new Poll__factory({ ...linkedLibraryAddresses }, signer).attach(pollAddress.value)
 
+      const extContracts = await poll.extContracts()
+      // @ts-ignore
       const messageAq = new AccQueueQuinaryMaci__factory({ ...linkedLibraryAddresses }, signer).attach(
         extContracts.messageAq,
       )
@@ -258,6 +305,7 @@ export default defineComponent({
       isInvalid.value = false
       let poll
       try {
+        // @ts-ignore
         poll = new Poll__factory({ ...linkedLibraryAddresses }, signer).attach(pollAddress.value)
       } catch (e) {
         throw new Error('poll contract not found')
@@ -265,6 +313,7 @@ export default defineComponent({
       if (!pptAddress.value) {
         throw new Error('ppt address not found')
       }
+      // @ts-ignore
       const ppt = new PollProcessorAndTallyer__factory(signer).attach(pptAddress.value)
       const tally: TallyResult = JSON.parse(tallyResult.value) as TallyResult
       const _isVerified = await verifyTallyResult(tally, poll, ppt)
@@ -344,6 +393,7 @@ export default defineComponent({
     }
 
     return {
+      isLoading,
       tallyResult,
       tallyState,
       pollState,
