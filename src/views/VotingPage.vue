@@ -153,15 +153,9 @@ export default defineComponent({
   setup() {
     const isLoading = ref(false)
     const { address, signer: signerRef } = useEthers()
-    const { appChainId } = useWeb3()
+    const { appChainId, getDefaultSigner } = useWeb3()
 
-    let signer: Signer | null
-    if (appChainId.value === 31337) {
-      const provider = new ethers.providers.JsonRpcProvider()
-      signer = provider.getSigner()
-    } else {
-      signer = signerRef.value
-    }
+    let signer = getDefaultSigner()
 
     const linkedLibraryAddresses = {
       // @ts-ignore
@@ -193,7 +187,7 @@ export default defineComponent({
       pollAddress: false,
     })
     const pollAddress = ref('')
-    const getVoiceCreditsAddress = ref(address.value)
+    const getVoiceCreditsAddress = ref('')
     const route = useRoute()
     const router = useRouter()
     const pollAddr = route.params.pollAddress as string
@@ -222,6 +216,8 @@ export default defineComponent({
 
       try {
         isLoading.value = true
+        const addr = await signer.getAddress()
+        getVoiceCreditsAddress.value = addr
         await getVoiceCredits()
       } catch (e: any) {
         throw new Error(e)

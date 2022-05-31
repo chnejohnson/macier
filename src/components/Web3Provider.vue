@@ -36,16 +36,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, watch } from 'vue'
-import {
-  useBoard,
-  useEthers,
-  displayChainName,
-  shortenAddress,
-  useWallet,
-  Metamask,
-  MetaMaskProvider,
-  ChainId,
-} from 'vue-dapp'
+import { useBoard, useEthers, displayChainName, shortenAddress, useWallet, ChainId } from 'vue-dapp'
 import useWeb3 from '@/composables/web3'
 
 export default defineComponent({
@@ -53,7 +44,7 @@ export default defineComponent({
   setup() {
     const { open: openBoard } = useBoard()
     const { address, balance, chainId, isActivated } = useEthers()
-    const { walletName, provider } = useWallet()
+    const { wallet } = useWallet()
     const { appChainId, supportedChainIds, isMatchedNetwork, updateAppChainId } = useWeb3()
 
     const networkList = supportedChainIds.map((chainId: number) => {
@@ -69,8 +60,8 @@ export default defineComponent({
     const chainIdSelection = ref(appChainId.value)
     watch(chainIdSelection, () => {
       updateAppChainId(chainIdSelection.value)
-      if (isActivated.value && walletName.value === 'metamask' && chainIdSelection.value !== ChainId.Hardhat) {
-        Metamask.switchChain(provider.value as MetaMaskProvider, chainIdSelection.value)
+      if (isActivated.value && wallet.connector!.name === 'metaMask' && chainIdSelection.value !== ChainId.Hardhat) {
+        wallet.connector!.switchChain(chainIdSelection.value)
       }
     })
 

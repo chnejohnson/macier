@@ -1,22 +1,21 @@
 <template>
   <w-app>
     <header><LayoutHeader /></header>
-    <main v-if="appChainId === 31337 || isActivated" class="grow my8 mx10">
+    <main class="grow my8 mx10">
       <router-view></router-view>
     </main>
-    <div v-else class="text-center ma12">Please connect an Ethereum wallet to proceed.</div>
+    <!-- <div class="text-center ma12">Please connect an Ethereum wallet to proceed.</div> -->
     <footer><LayoutFooter /></footer>
   </w-app>
 
-  <!--  VueDapp  -->
-  <vdapp-board />
+  <vd-board :connectors="connectors" dark />
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
 import LayoutHeader from '@/components/LayoutHeader.vue'
 import LayoutFooter from '@/components/LayoutFooter.vue'
-import { useEthers } from 'vue-dapp'
+import { MetaMaskConnector, WalletConnectConnector, CoinbaseWalletConnector, useEthers } from 'vue-dapp'
 import useWeb3 from '@/composables/web3'
 
 export default defineComponent({
@@ -24,9 +23,27 @@ export default defineComponent({
   components: { LayoutHeader, LayoutFooter },
   setup() {
     const { isActivated } = useEthers()
-    const { appChainId } = useWeb3()
+    const { appChainId, infuraApiKey } = useWeb3()
+
+    const connectors = [
+      new MetaMaskConnector({
+        appUrl: 'http://localhost:3000',
+      }),
+      new WalletConnectConnector({
+        qrcode: true,
+        rpc: {
+          1: `https://mainnet.infura.io/v3/${infuraApiKey}`,
+          4: `https://rinkeby.infura.io/v3/${infuraApiKey}`,
+        },
+      }),
+      new CoinbaseWalletConnector({
+        appName: 'Vue Dapp',
+        jsonRpcUrl: `https://mainnet.infura.io/v3/${infuraApiKey}`,
+      }),
+    ]
 
     return {
+      connectors,
       appChainId,
       isActivated,
     }

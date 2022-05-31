@@ -30,6 +30,11 @@ const routes: Array<RouteRecordRaw> = [
     component: VerifyPage,
   },
   {
+    path: '/verify/:pollAddress/:network',
+    name: 'VerifyPageWithAddressAndNetwork',
+    component: VerifyPage,
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: '404Page',
     component: () => import('./views/404Page.vue'),

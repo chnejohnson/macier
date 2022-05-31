@@ -110,9 +110,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, watch, onMounted } from 'vue'
+import { defineComponent, ref, reactive, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ethers, Signer } from 'ethers'
 import {
   AccQueueQuinaryMaci__factory,
   Poll__factory,
@@ -197,19 +196,13 @@ export default defineComponent({
     }
 
     const { signer: signerRef } = useEthers()
-    const { appChainId } = useWeb3()
+    const { appChainId, getDefaultSigner, supportedChainIds } = useWeb3()
 
-    let signer: Signer | null
-    if (appChainId.value === 31337) {
-      const provider = new ethers.providers.JsonRpcProvider()
-      signer = provider.getSigner()
-    } else {
-      signer = signerRef.value
-    }
+    let signer = getDefaultSigner()
 
     const { onChainChanged } = useWallet()
     onChainChanged(async () => {
-      signer = signerRef.value
+      signer = getDefaultSigner()
       try {
         isLoading.value = true
         await loadPoll()
@@ -256,8 +249,21 @@ export default defineComponent({
     const route = useRoute()
     const router = useRouter()
     const pollAddr = route.params.pollAddress as string
+    const network = route.params.network
+
+    console.log(network)
+
+    watch(appChainId, () => {
+      signer = getDefaultSigner()
+    })
 
     onMounted(async () => {
+      // check network route param
+      if (supportedChainIds.includes(Number(network))) {
+        // @ts-ignore
+        appChainId.value = Number(network)
+        signer = getDefaultSigner()
+      }
       if (!pollAddr) {
         dialog.value.pollAddress = true
       } else {

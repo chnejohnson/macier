@@ -64,25 +64,16 @@ export default defineComponent({
   setup() {
     const { signer: signerRef } = useEthers()
     const { onChainChanged } = useWallet()
-    const { appChainId } = useWeb3()
+    const { appChainId, getDefaultSigner } = useWeb3()
 
-    let signer: Signer | null
-    if (appChainId.value === 31337) {
-      const provider = new ethers.providers.JsonRpcProvider()
-      signer = provider.getSigner()
-    } else {
-      signer = signerRef.value
-    }
+    let signer = getDefaultSigner()
 
     const defaultPoll = ADDRESSES[appChainId.value].poll
     const contractAddress = ref(defaultPoll)
 
-    onChainChanged(() => {
-      signer = signerRef.value
-    })
-
     watch(appChainId, () => {
       contractAddress.value = ADDRESSES[appChainId.value].poll
+      signer = getDefaultSigner()
     })
 
     const maciState = reactive({
