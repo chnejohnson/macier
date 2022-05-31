@@ -251,8 +251,6 @@ export default defineComponent({
     const pollAddr = route.params.pollAddress as string
     const network = route.params.network
 
-    console.log(network)
-
     watch(appChainId, () => {
       signer = getDefaultSigner()
     })

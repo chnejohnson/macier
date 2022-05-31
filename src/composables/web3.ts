@@ -1,6 +1,6 @@
 import { ethers, Signer } from 'ethers'
 import { computed, ref } from 'vue'
-import { useEthers, displayChainName } from 'vue-dapp'
+import { useEthers, displayChainName, CHAIN_NAMES, ChainId } from 'vue-dapp'
 
 type SupportedChainId = 31337 | 4 | 5
 
@@ -51,7 +51,9 @@ export default function useWeb3() {
   }
 
   function getDefaultSigner() {
-    const provider = ethers.getDefaultProvider(rpcURL.value)
+    const network = CHAIN_NAMES[appChainId.value].toLowerCase()
+    console.log(network)
+    const provider = ethers.getDefaultProvider(network)
     const defaultSigner = ethers.Wallet.createRandom().connect(provider)
     return defaultSigner as Signer
   }
